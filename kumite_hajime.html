@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Hajime">
+<meta name="theme-color" content="#0d0d0d">
+<link rel="manifest" href="kumite_hajime.webmanifest">
+<link rel="apple-touch-icon" href="kumite_hajime_icon_180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="kumite_hajime_icon_192.png">
+<title>空手試合補助アプリ「Hajime」</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0d0d0d;color:#fff;font-family:-apple-system,"Hiragino Sans",sans-serif;overflow:hidden;touch-action:manipulation;overscroll-behavior:none}
+#app,#kata{display:flex;height:100vh;height:100dvh;width:100vw}
+#kata{display:none}
+body.kata #app{display:none}
+body.kata #kata{display:flex}
+.panel{flex:0 0 33%;display:flex;flex-direction:column;gap:1.6vh;padding:1.6vh;min-width:0}
+#aka,#kaka{background:#730d0d}#ao,#kao{background:#0d1f73}
+#aka,#kaka{order:1}#center,#kcenter{order:2}#ao,#kao{order:3}
+#app.swap #aka,#kata.swap #kaka{order:3}#app.swap #ao,#kata.swap #kao{order:1}
+.panel.left{padding-left:max(1.6vh,env(safe-area-inset-left))}
+.panel.right{padding-right:max(1.6vh,env(safe-area-inset-right))}
+#center,#kcenter{flex:1;transition:background .2s;display:flex;flex-direction:column;gap:1.6vh;padding:1.6vh;min-width:0}
+#kcenter{gap:1.3vh}
+button{border:none;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-family:inherit;touch-action:manipulation;cursor:pointer}
+button:active{filter:brightness(1.5)}
+.name{flex:0 0 8vh;font-size:5vh;line-height:8vh;text-align:center;font-weight:700}
+.score{flex:0 0 24vh;font-size:min(22vh,14vw);line-height:24vh;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.senshu{flex:0 0 10vh;font-size:min(3.6vh,2.2vw);line-height:1.15}
+.senshu small{display:block;font-size:.6em;font-weight:600}
+.senshu.on{background:#ffcc1a;color:#000}
+.senshu.dim{color:rgba(255,255,255,.35)}
+.row{display:flex;gap:1.6vh}
+.row>*{flex:1;min-width:0}
+.pts{flex:0 0 15vh}
+.pts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4vh}
+.pts .lbl{font-size:min(3.8vh,2.3vw)}
+.pts .cnt{font-size:min(5.6vh,3.4vw);font-variant-numeric:tabular-nums;line-height:1}
+.pens{flex:0 0 9vh;gap:4px}
+.pen{display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(0,0,0,.3);color:rgba(255,255,255,.35);font-size:min(2.8vh,1.2vw);font-weight:700;white-space:nowrap}
+.pen.on{background:#ffcc1a;color:#000}.pen.on.foul{background:#ff3333}
+.penbtn{flex:0 0 10vh}.penbtn button{font-size:min(3.4vh,2vw);line-height:1.15}
+.penbtn small{display:block;font-size:.6em;font-weight:600}
+.hint{flex:0 0 3vh;font-size:min(2.2vh,1.3vw);line-height:3vh;text-align:center;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden}
+#timer{flex:0 0 32vh;background:transparent;font-size:min(24vh,9.5vw);font-family:Menlo,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+#timer.warn{color:#ff2626}
+#state{flex:0 0 5vh;text-align:center;color:rgba(255,255,255,.35);font-size:min(3vh,1.8vw);line-height:5vh;border-radius:8px}
+#app.edit #center{background:#6b4700}
+#app.edit #state{background:#ffcc1a;color:#000;font-weight:800;font-size:min(3.8vh,2.3vw);letter-spacing:.15em}
+#app.edit #timer{color:rgba(255,255,255,.6)}
+.adj{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vh;flex:0 0 21vh}
+.adj button{font-size:min(3.4vh,1.9vw)}
+.adj.off button{color:rgba(255,255,255,.25);background:rgba(255,255,255,.07)}
+#unlock{flex:0 0 9vh;font-size:min(3vh,1.7vw)}
+#unlock.on{background:#ffcc1a;color:#000}
+#unlock.dim{color:rgba(255,255,255,.3)}
+#reset{margin-top:auto;flex:0 0 9vh;font-size:min(3.2vh,1.8vw)}
+.footer{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5vh 1vh}
+.brand{font-size:min(2.1vh,1.25vw);line-height:1.2;min-width:0;flex:0 0 100%;color:rgba(255,255,255,.45)}
+.brand span{white-space:nowrap}
+.brand b{margin-left:.6em;padding:.1em .5em;border:1px solid rgba(255,255,255,.45);border-radius:4px;font-weight:700}
+.swap-btn,.menu-btn{height:5.5vh;flex:0 0 auto;padding:0 1vh;line-height:1.2;font-size:min(2.2vh,1.3vw);font-weight:600;color:rgba(255,255,255,.6);background:rgba(255,255,255,.08)}
+.menu-btn{background:#2e7d32;color:#fff;font-weight:700;padding:0 1.6vh}
+.menu-btn.dim{background:rgba(46,125,50,.35);color:rgba(255,255,255,.25)}
+.terms-link{flex:0 0 auto;background:none;border:none;color:rgba(255,255,255,.6);font-size:min(2.2vh,1.3vw);font-weight:600;text-decoration:underline;padding:0 .5vh;height:5.5vh}
+/* ---- 形 ---- */
+.seg{display:flex;gap:1vh;flex:0 0 7.5vh}
+.seg button{flex:1;font-size:min(3vh,1.8vw);background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+.seg button.on{background:#ffcc1a;color:#000}
+.seg.locked button:not(.on){color:rgba(255,255,255,.2)}
+#kmsg{flex:0 0 auto;font-size:min(2.2vh,1.3vw);line-height:1.3;text-align:center;color:rgba(255,255,255,.55)}
+#kresult{flex:1 1 auto;min-height:9vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6vh;text-align:center;border-radius:10px;background:rgba(255,255,255,.05);font-size:min(2.8vh,1.7vw);color:rgba(255,255,255,.55);padding:1vh}
+#kresult .win{font-size:min(8vh,4.8vw);font-weight:800;color:#fff;line-height:1.1}
+#kata.score-mode #kresult .win{font-size:min(5.5vh,3.3vw)}
+#kresult.aka{background:#a01515;color:rgba(255,255,255,.85)}
+#kresult.ao{background:#1530a0;color:rgba(255,255,255,.85)}
+#kresult.tie{background:#555;color:rgba(255,255,255,.85)}
+#kpad{display:flex;flex-direction:column;gap:1vh;flex:0 0 auto}
+.ktop{display:flex;flex-direction:column;gap:1.3vh}
+.kbottom{flex:1 1 auto;display:flex;flex-direction:column;gap:1.3vh;min-height:0}
+#kboard{display:none}
+#kata.flag-mode #kaka,#kata.flag-mode #kao{display:none}
+#kata.flag-mode #kcenter{padding-left:max(1.6vh,env(safe-area-inset-left));padding-right:max(1.6vh,env(safe-area-inset-right))}
+#kata.flag-mode .ktop{flex-direction:row}
+#kata.flag-mode #ktitle{flex:0 0 30%}
+#kata.flag-mode .ktop .seg{flex:1}
+#kata.flag-mode #kboard{display:grid;gap:1vh;flex:1 1 auto;min-height:22vh}
+#kata.flag-mode .kbottom{flex:0 0 auto;flex-direction:row}
+#kata.flag-mode #kresult{flex:1 1 0}
+#kata.flag-mode #kpad{flex:1.3 1 0}
+#kata.flag-mode #kreset,#kata.flag-mode .footer{display:none}
+#kata.flag-mode .kfoot{display:flex}
+.kfoot{display:none;flex:0 0 auto;gap:1vh;align-items:stretch}
+.kfoot #kreset2{flex:0 0 30%;font-size:min(2.6vh,1.6vw)}
+.kfoot .footer{display:flex!important;flex:1}
+.jcol{display:flex;flex-direction:column;gap:.6vh;min-width:0;background:rgba(255,255,255,.05);border-radius:10px;padding:.6vh}
+.jh{flex:0 0 3.6vh;line-height:3.6vh;text-align:center;font-size:min(2.6vh,1.6vw);font-weight:700}
+.jcells{flex:1 1 auto;display:flex;gap:.6vh;min-height:0}
+.jc{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2vh;font-variant-numeric:tabular-nums}
+.jc.aka{background:#730d0d}.jc.ao{background:#0d1f73}
+.jc.sel{box-shadow:inset 0 0 0 4px #ffcc1a}
+.jc .js{font-size:min(2vh,1.2vw);opacity:.75}
+.jc .jv{font-size:min(4.4vh,2.3vw);line-height:1}
+.jw{flex:0 0 4.4vh;line-height:4.4vh;text-align:center;border-radius:6px;font-size:min(2.4vh,1.4vw);font-weight:800;background:rgba(0,0,0,.3);color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden}
+.jw.aka{background:#c41c1c;color:#fff}.jw.ao{background:#1c3cc4;color:#fff}.jw.tie{background:#ffcc1a;color:#000}
+#kpad .plbl{font-size:min(2.6vh,1.6vw);text-align:center;line-height:3.4vh;height:3.4vh;border-radius:6px;color:rgba(255,255,255,.55)}
+#kpad .plbl.aka{background:#a01515;color:#fff}#kpad .plbl.ao{background:#1530a0;color:#fff}
+#kpad .grid{display:grid;gap:1vh}
+.kin{flex:0 0 5.5vh}
+.kin button{font-size:min(2.4vh,1.5vw)}
+#kpnum{display:flex;flex-direction:column;gap:1vh}
+#kpbase{display:none;flex-direction:column;gap:1vh}
+#kpad.base #kpnum{display:none}
+#kpad.base #kpbase{display:flex}
+.brow,.vrow{display:flex;gap:1vh;align-items:center}
+.brow .bl{font-size:min(2.4vh,1.5vw);color:rgba(255,255,255,.6)}
+#kbedit{flex:1;display:flex;align-items:center;justify-content:center;gap:1.2vh;background:rgba(255,255,255,.07);color:rgba(255,255,255,.6)}
+#kbm,#kbp,#kbdone{display:none;flex:0 0 18%}
+#kbrow.edit #kbm,#kbrow.edit #kbp,#kbrow.edit #kbdone{display:block}
+#kbrow.edit #kbedit{background:#ffcc1a;color:#000}
+#kbrow.edit #kbase{color:#000}
+#kbdone{background:#5e35b1!important}
+.bh{font-size:min(2vh,1.2vw);font-weight:600;opacity:.8}
+#kbase{text-align:center;font-size:min(3.6vh,2.2vw);font-weight:700;font-variant-numeric:tabular-nums;color:#ffcc1a}
+#kpad .kin button{height:100%}
+#kpad .brow button{height:6vh;font-size:min(2.8vh,1.7vw)}
+#kpad .vrow button{flex:1;height:9vh;font-size:min(4vh,2.4vw)}
+#kval{flex:0 0 32%;text-align:center;font-size:min(7vh,4.2vw);font-weight:800;font-variant-numeric:tabular-nums}
+#kval.tent{color:rgba(255,255,255,.5)}
+#kpad #kok{height:7vh;background:#5e35b1}
+#kpad .gi{grid-template-columns:repeat(6,1fr)}#kpad .gd{grid-template-columns:repeat(5,1fr)}
+#kpad button{height:7vh;font-size:min(3.6vh,2.2vw);font-variant-numeric:tabular-nums}
+#kpad.off #kpnum button,#kpad.off .vrow button,#kpad.off #kok,#kpad button.off{color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
+#kreset{margin-top:auto;flex:0 0 9vh;font-size:min(3.2vh,1.8vw)}
+.khead{flex:0 0 14vh;display:flex;align-items:center;justify-content:center;gap:2vh}
+.kname{font-size:min(6vh,3.6vw);font-weight:800;white-space:nowrap}
+.kbig2{white-space:nowrap;font-size:min(12vh,5.2vw);font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.court{position:relative;flex:1 1 auto;min-height:0}
+.court .mat{position:absolute;left:16%;right:16%;top:21%;bottom:17%;border:2px solid rgba(255,255,255,.35);border-radius:4px;background:rgba(255,255,255,.04)}
+.court .seat{position:absolute;transform:translate(-50%,-50%);width:30%;height:20%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2vh;padding:0 2px;background:rgba(0,0,0,.35)}
+.court .seat .jl{font-size:min(1.9vh,1.15vw);font-weight:600;opacity:.8;white-space:pre-line;text-align:center;line-height:1.1}
+.court .seat .jv{font-size:min(4.2vh,2.5vw);line-height:1;font-variant-numeric:tabular-nums}
+.court .seat.sel{box-shadow:inset 0 0 0 4px #ffcc1a}
+.court .seat.ex .jv{text-decoration:line-through;opacity:.45}
+#kata.score-mode #kaka,#kata.score-mode.swap #kaka{order:1;background:#ececec;color:#111}
+#kata.score-mode #kao,#kata.score-mode.swap #kao{order:3;background:#1a1a1a}
+#kata.score-mode #kaka .court .mat{border-color:rgba(0,0,0,.35);background:rgba(0,0,0,.03)}
+#kata.score-mode #kaka .seat{background:#fff;color:#111;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+#kata.score-mode #kaka .seat.sel{box-shadow:inset 0 0 0 4px #e0a000}
+#kata.score-mode #kaka .seat.hi .jv{text-decoration:line-through #d32f2f 3px;opacity:.6}
+#kata.score-mode #kaka .seat.lo .jv{text-decoration:line-through #1e5bd8 3px;opacity:.6}
+#kata.score-mode #kaka .hint,#kata.score-mode #kaka .ksub{color:rgba(0,0,0,.6)}
+#kata.score-mode .ktop{flex-direction:row}
+#kata.score-mode #ktitle{flex:0 0 34%;white-space:nowrap;font-size:min(3.4vh,1.9vw);letter-spacing:0}
+#kata.score-mode .ktop .seg button{white-space:nowrap;font-size:min(2.6vh,1.5vw)}
+#kata.score-mode .ktop .seg{flex:1}
+#kata.score-mode #kreset{flex:0 0 7vh}
+#kata.score-mode #kcenter > .footer{display:none}
+.rfoot{margin-top:auto}
+.pcount{display:none;flex:0 0 6vh;align-items:center;gap:1vh}
+#kata.score-mode .pcount{display:flex}
+.pcount .pl{font-size:min(2.6vh,1.5vw);font-weight:700}
+.pcount button{flex:0 0 14%;height:100%;font-size:min(3.4vh,2vw)}
+.pcount button.off{color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
+.pcount b{flex:0 0 auto;min-width:4em;text-align:center;font-size:min(3.2vh,1.9vw);color:#ffcc1a;font-variant-numeric:tabular-nums}
+.pcount .pch{flex:1;font-size:min(1.9vh,1.1vw);color:rgba(255,255,255,.5);line-height:1.2}
+#kresult .exl{font-size:min(2.6vh,1.5vw)}
+#kresult .exl.hi{color:#ff8a8a}#kresult .exl.lo{color:#8ab0ff}
+#kpad .plbl.jka{background:#ececec;color:#111}
+#kconfirm{display:none;flex:0 0 7.5vh;font-size:min(2.8vh,1.7vw);background:#c25e00}
+#kata.score-mode #kconfirm{display:block}
+#kconfirm.off{background:rgba(255,255,255,.06);color:rgba(255,255,255,.25)}
+.lhead{flex:0 0 4vh;line-height:4vh;text-align:center;font-size:min(3vh,1.8vw);font-weight:700}
+.plist{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:min(2.4vh,1.35vw)}
+.plist th{font-size:.8em;color:rgba(255,255,255,.6);font-weight:600;padding:.4vh 0;line-height:1.15}
+.plist td{text-align:center;padding:.5vh .2vw;border-top:1px solid rgba(255,255,255,.12)}
+.plist td:first-child{text-align:left;white-space:nowrap}
+.plist td:nth-child(2){line-height:1.15}
+.plist td small{display:block;font-size:.75em;color:#ffcc1a}
+.plist td.h{color:#ff7a7a}.plist td.l{color:#7aa6ff}
+.plist tr.cur td{background:rgba(255,204,26,.15)}
+#kata.score-mode #kaka{flex:0 0 27%}
+#kata.score-mode #kao{flex:0 0 40%}
+.rcols{flex:0 1 auto;display:flex;gap:1.2vh;min-height:0}
+.rc1{flex:0 0 31%;display:flex;flex-direction:column;min-width:0}
+.rc2{flex:1;display:flex;flex-direction:column;min-width:0}
+.ctab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ctab th{text-align:left;white-space:nowrap;padding:0 .4vh}
+.ctab tr.tr-tot th,.ctab tr.tr-tot td{border-top:2px solid rgba(255,255,255,.6)}
+.ctab th{font-size:min(2.2vh,1.2vw);color:rgba(255,255,255,.7);font-weight:600}
+.ctab td{text-align:center;font-size:min(3vh,1.7vw);padding:.7vh 0;border:1px solid rgba(255,255,255,.15)}
+.ctab td.tot{font-weight:800;color:#ffcc1a}
+.ctab td.sel{box-shadow:inset 0 0 0 2px #ffcc1a}
+.ctab td.hi{background:linear-gradient(to top right,transparent calc(50% - 1.5px),#ff5252 calc(50% - 1.5px),#ff5252 calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+.ctab td.lo{background:linear-gradient(to top right,transparent calc(50% - 1.5px),#4f8bff calc(50% - 1.5px),#4f8bff calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+.plist td.rk{font-weight:800}
+.plist td.bs{font-size:.8em;color:rgba(255,255,255,.5);white-space:nowrap}
+.plist td.bs.tb{color:#ffcc1a}
+.plist td.dec{background:#fff3b0;color:#111!important;font-weight:800}
+#sheet-table td.dec{background:#fff3b0;font-weight:800}
+#sheet-table td.bs{font-size:.8em;color:#666}#sheet-table td.bs.tb{color:#b26a00;font-weight:700}
+.sheet-btn{flex:0 0 7vh;margin-top:1vh;font-size:min(2.6vh,1.6vw);background:#455a64}
+#sheet{display:none;position:fixed;inset:0;z-index:15;background:#fff;color:#111;flex-direction:column;padding:2vh max(2vw,env(safe-area-inset-right)) 2vh max(2vw,env(safe-area-inset-left))}
+#sheet.open{display:flex}
+.shead{flex:0 0 7vh;display:flex;align-items:center;gap:2vw;font-size:min(3.4vh,2vw);font-weight:800}
+.shead .legend{flex:1;font-size:.7em;font-weight:600;color:#444}
+.lg{display:inline-block;width:1.4em;height:1em;vertical-align:middle;margin-left:.6em;border:1px solid #999}
+.shead button{background:#455a64;padding:1vh 3vw;font-size:min(2.8vh,1.7vw)}
+.swrap{flex:1;overflow:auto}
+#sheet-table{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums;font-size:min(3vh,1.8vw)}
+#sheet-table th,#sheet-table td{border:1px solid #999;padding:.6vh .6vw;text-align:center}
+#sheet-table thead th{background:#f0f0f0}
+#sheet-table thead th:first-child,#sheet-table tbody th{width:9em}
+#sheet-table tbody th{text-align:left;white-space:nowrap;background:#f7f7f7;font-weight:600}
+#sheet-table tr.sum td,#sheet-table tr.sum th{font-weight:800;border-top:3px solid #333}
+#sheet-table td.hi,.lg.hi{background:linear-gradient(to top right,transparent calc(50% - 1.5px),#d32f2f calc(50% - 1.5px),#d32f2f calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+#sheet-table td.lo,.lg.lo{background:linear-gradient(to top right,transparent calc(50% - 1.5px),#1e5bd8 calc(50% - 1.5px),#1e5bd8 calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+#sheet-table td.ht{color:#c62828}#sheet-table td.lt{color:#1e5bd8}
+.kbig{flex:0 0 20vh;font-size:min(17vh,10vw);line-height:20vh;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.ksub{flex:0 0 3.5vh;font-size:min(2.6vh,1.6vw);line-height:3.5vh;text-align:center;color:rgba(255,255,255,.65);font-variant-numeric:tabular-nums}
+.kgrid{flex:1 1 auto;display:grid;gap:1.4vh;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;min-height:0}
+.kgrid.c3{grid-template-columns:repeat(3,1fr)}
+.kgrid button{font-size:min(6vh,3.6vw);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3vh;min-height:0}
+.kgrid button.on{background:#ffcc1a;color:#000}
+.kgrid .jl{font-size:min(2.2vh,1.3vw);font-weight:600;opacity:.75}
+.kgrid .jv{font-size:min(5vh,3vw);line-height:1}
+.kgrid button.sel{box-shadow:inset 0 0 0 4px #ffcc1a}
+.kgrid button.ex .jv{text-decoration:line-through;opacity:.45}
+/* ---- 共通 ---- */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20;align-items:center;justify-content:center;padding:4vh 6vw}
+.ov.open{display:flex}
+.ov .box{background:#1e1e1e;border-radius:14px;padding:3vh 3vw;max-width:720px;max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:2vh}
+.ov h2{font-size:min(4vh,2.4vw)}
+.ov p{font-size:min(3.2vh,1.9vw);line-height:1.7;color:rgba(255,255,255,.9);-webkit-user-select:text;user-select:text}
+.ov button{align-self:center;padding:1.5vh 5vw;font-size:min(3.2vh,1.9vw)}
+#rotate{display:none;position:fixed;inset:0;background:#0d0d0d;align-items:center;justify-content:center;font-size:6vw;font-weight:700;z-index:10}
+#menu .box{min-width:50vw}
+#menu .mi{align-self:stretch;padding:2.4vh 2vw;font-size:min(4vh,2.4vw)}
+#menu .mi.on{background:#ffcc1a;color:#000}
+#menu-close{background:rgba(255,255,255,.08)}
+#ktitle{flex:0 0 7.5vh;line-height:7.5vh;text-align:center;font-size:min(4vh,2.4vw);font-weight:800;letter-spacing:.1em;border-radius:10px;background:rgba(255,255,255,.08)}
+@media (orientation:portrait){#rotate{display:flex}}
+</style>
+</head>
+<body>
+<!-- ============================== 組手 ============================== -->
+<div id="app">
+  <div class="panel left" id="aka"></div>
+  <div id="center">
+    <button id="timer">1:30</button>
+    <div id="state">タップで開始</div>
+    <button id="unlock">修正（長押し）</button>
+    <div class="adj" id="adj">
+      <button data-d="-60">−1分</button><button data-d="-10">−10秒</button><button data-d="-1">−1秒</button>
+      <button data-d="60">+1分</button><button data-d="10">+10秒</button><button data-d="1">+1秒</button>
+    </div>
+    <button id="reset">リセット（1秒長押し）</button>
+    <div class="footer">
+      <span class="brand"><span>空手試合補助アプリ</span><span>「Hajime」<b>β版</b></span></span>
+      <button class="terms-link">利用規約</button>
+      <button class="menu-btn" id="menu-kumite">メニュー</button>
+      <button class="swap-btn">⇄ 赤青入替<br>（長押し）</button>
+    </div>
+  </div>
+  <div class="panel right" id="ao"></div>
+</div>
+<!-- ============================== 形 ============================== -->
+<div id="kata">
+  <div class="panel left" id="kaka"></div>
+  <div id="kcenter">
+    <div class="ktop"><div id="ktitle"></div>
+    <div class="seg" id="seg-judges"><button data-v="3">審判3人</button><button data-v="5">審判5人</button><button data-v="7">審判7人</button></div></div>
+    <div class="pcount" id="pcount"><span class="pl">選手数</span><button id="pcm">−</button><b id="pcv">8人</b><button id="pcp">+</button><span class="pch" id="pch"></span></div>
+    <div id="kmsg"></div>
+    <div id="kboard"></div>
+    <div class="kbottom"><div id="kresult"></div>
+    <button id="kconfirm"></button>
+    <div id="kpad">
+      <div class="seg kin" id="kin"><button data-v="pad">テンキー入力</button><button data-v="base">基準点入力</button></div>
+      <div class="plbl" id="kplbl"></div>
+      <div id="kpnum"><div class="grid gi" id="kpi"></div><div class="grid gd" id="kpd"></div></div>
+      <div id="kpbase">
+        <div class="brow" id="kbrow"><button id="kbm">−0.1</button><button id="kbedit"><span class="bl">基準点</span><span id="kbase">7.5</span><span class="bh" id="kbh">長押しで変更</span></button><button id="kbp">+0.1</button><button id="kbdone">完了</button></div>
+        <div class="vrow"><button id="kvm">−0.1</button><span id="kval">—</span><button id="kvp">+0.1</button></div>
+        <button id="kok">確定（次へ）</button>
+      </div>
+    </div></div>
+    <button id="kreset">リセット（1秒長押し）</button>
+    <div class="kfoot"><button id="kreset2">リセット（1秒長押し）</button>
+      <div class="footer">
+        <span class="brand"><span>空手試合補助アプリ</span><span>「Hajime」<b>β版</b></span></span>
+        <button class="terms-link">利用規約</button>
+        <button class="menu-btn">メニュー</button>
+        <button class="swap-btn">⇄ 赤青入替<br>（長押し）</button>
+      </div></div>
+    <div class="footer">
+      <span class="brand"><span>空手試合補助アプリ</span><span>「Hajime」<b>β版</b></span></span>
+      <button class="terms-link">利用規約</button>
+      <button class="menu-btn">メニュー</button>
+      <button class="swap-btn">⇄ 赤青入替<br>（長押し）</button>
+    </div>
+  </div>
+  <div class="panel right" id="kao"></div>
+</div>
+<div id="terms" class="ov"><div class="box"><h2>利用規約</h2><p>本ツールは個人が無償で提供するものです。表示される時間・得点等の正確性や、特定の目的への適合性は保証しません。公式試合の計時・記録には大会の正式な機材をご使用ください。本ツールの利用により生じた損害について、提供者の故意または重大な過失による場合を除き、責任を負いません。本ツールは利用者の情報を収集・送信しません。（ホスティング事業者がアクセスログを記録する場合があります）</p><button id="terms-close">閉じる</button></div></div>
+<div id="menu" class="ov"><div class="box"><h2>メニュー</h2><button class="mi" data-m="kumite">組手</button><button class="mi" data-m="flag">形（多数決）</button><button class="mi" data-m="score">形（JKA）</button><button id="menu-close">閉じる</button></div></div>
+<div id="sheet"><div class="shead"><span>形（JKA）得点一覧</span><span class="legend"><i class="lg hi"></i>除外した最高点　<i class="lg lo"></i>除外した最低点</span><button id="sheet-close">閉じる</button></div><div class="swrap"><table id="sheet-table"></table></div></div>
+<div id="rotate">横向きにしてください</div>
+<script>
+"use strict";
+// 仕様：「組手タイマー仕様（確定事項）」準拠
+const PENALTY_NAMES = ["注意1","注意2","注意3","反則注意","反則"];
+const WAZA = [{key:"yuko", label:"有効", pt:1}, {key:"wazaari", label:"技あり", pt:2}, {key:"ippon", label:"一本", pt:3}];
+const WARN_SEC = 15, TENTHS_SEC = 10, DEFAULT_SEC = 90, MAX_SEC = 99*60+59;
+const LONG_MS = 500, RESET_MS = 1000;
+const SIDES = ["aka","ao"];
+const SIDE_NAME = {aka:"赤", ao:"青"};
+
+// ---------------------------------------------------------------- 組手ロジック
+const m = { duration: DEFAULT_SEC, swapped: true };   // swapped=true：左が青（初期表示）。組手・形で共通
+function reset(){
+  m.base = m.duration; m.running = false; m.started = false; m.t0 = 0;
+  m.count = {}; for(const s of SIDES){ m.count[s] = {yuko:0, wazaari:0, ippon:0}; }
+  m.penalty = {aka:0, ao:0};
+  m.senshu = null; m.senshuCancelled = false;
+  m.warnFired = false; m.endFired = false;
+  m.unlocked = false;
+}
+reset();
+const score = s => WAZA.reduce((a,w) => a + m.count[s][w.key] * w.pt, 0);
+const now = () => performance.now() / 1000;
+function remaining(t){ if(!m.running) return m.base; t = t ?? now(); return Math.max(0, m.base - (t - m.t0)); }
+function toggle(){
+  const t = now();
+  if(m.running){ m.base = remaining(t); m.running = false; }
+  else if(m.base > 0 && !m.unlocked){ m.t0 = t; m.running = true; m.started = true; }   // 修正モード中は開始しない
+}
+function tick(){
+  if(!m.running) return;
+  const r = remaining();
+  if(r <= 0){
+    m.base = 0; m.running = false;
+    if(!m.endFired){ m.endFired = true; play("end"); }
+  } else if(r <= WARN_SEC && !m.warnFired){
+    m.warnFired = true; play("warn");
+  }
+}
+const canAdjust = () => !m.running && (!m.started || m.unlocked);
+function adjust(d){
+  if(!canAdjust()) return;
+  let n = Math.min(MAX_SEC, Math.max(0, m.base + d));
+  if(!m.started){ n = Math.max(1, n); m.duration = n; }
+  m.base = n;
+  if(n > WARN_SEC) m.warnFired = false;
+  if(n > 0) m.endFired = false;
+}
+function enterEdit(){ if(m.started && !m.running) m.unlocked = true; }   // 一時停止中のみ
+function exitEdit(){ m.unlocked = false; }
+function addWaza(s, k, d){ m.count[s][k] = Math.max(0, m.count[s][k] + d); }
+const addPenalty = (s,d) => { m.penalty[s] = Math.min(PENALTY_NAMES.length, Math.max(0, m.penalty[s] + d)); };
+const giveSenshu = s => { if(m.senshu === null && !m.senshuCancelled) m.senshu = s; };
+function longSenshu(s){
+  if(m.senshu === s){ m.senshu = null; m.senshuCancelled = true; }      // 取消
+  else if(m.senshu === null && m.senshuCancelled){ m.senshu = s; }      // 取消後の再付与
+}
+function fmt(sec){
+  if(sec < TENTHS_SEC){
+    const t = Math.ceil(sec * 10 - 1e-9) / 10;
+    if(t < TENTHS_SEC) return t.toFixed(1);
+  }
+  const s = Math.ceil(sec - 1e-9);
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+
+// ---------------------------------------------------------------- 形ロジック
+// 点数は0.1点単位の整数（例 8.5点 → 85）で保持し、小数の誤差を避ける
+const K_MIN = 50, K_MAX = 100, K_JUDGES = [3,5,7];
+// 形は「多数決」「点数」の2メニュー。審判数・入力内容はメニューごとに別々に保持する
+// どちらも 審判i の赤・青の点数を scores.aka[i] / scores.ao[i] に持つ
+const K = { flag: { judges: 5, input: "pad", base: 75 }, score: { judges: 5, input: "pad", base: 75 } };   // input：テンキー／基準点
+let mode = "kumite";                                  // "kumite" | "flag" | "score"
+let k = K.flag;                                       // 表示中の形メニューの状態
+function kReset(which){
+  which = which || (mode === "score" ? "score" : "flag");
+  const o = K[which];
+  o.scores = { aka: Array(o.judges).fill(null), ao: Array(o.judges).fill(null) };
+  o.sel = null;                                       // 入力中のセル {s, i}
+  if(which === "score"){ o.players = []; o.edit = null; o.sel = {s:"aka", i:0}; }   // 各選手の初期状態は主審を選択   // 形（JKA）：確定済みの選手の採点／修正中の選手番号
+}
+// 形（JKA）は色の区分なし。採点中の選手の点数は scores.aka を使う
+const JKA_MAX_PLAYERS = 8;                             // 選手数の上限（選手数は1〜8で設定）
+K.score.count = JKA_MAX_PLAYERS;
+// 選手数の変更：入力後も可能。ただし確定済みの人数（得点入力中の選手がいればその人を含む）より少なくはできない
+const kMinCount = () => Math.max(1, k.players.length + (k.edit === null && kCurInput() ? 1 : 0));
+function kSetCount(d){
+  const n = Math.min(JKA_MAX_PLAYERS, Math.max(kMinCount(), k.count + d));
+  if(n === k.count) return;
+  k.count = n;
+  if(!kFinished() && !k.sel && k.edit === null) k.sel = {s:"aka", i:0};   // 人数を増やして再開したときは主審を選択
+}
+const kClearCurrent = () => { k.scores.aka = Array(k.judges).fill(null); k.sel = null; };
+kReset("flag"); kReset("score");
+const kCurInput = () => SIDES.some(s => k.scores[s].some(v => v !== null));
+const kHasInput = () => kCurInput() || (mode === "score" && k.players.length > 0);
+function kSetJudges(n){ if(!kHasInput() && n !== k.judges){ k.judges = n; kReset(); } }
+const judgeName = i => i === 0 ? "主審" : "副審" + i;
+// 形（JKA）のコート図上の審判の位置（中心の左右%・上下%）。主審は上、副審は主審から時計回り
+const POS = { top:[50,9], tr:[84,21], rm:[84,52], br:[84,83], bl:[16,83], lm:[16,52], tl:[16,21] };
+const SEATS = { 3: ["top","br","bl"], 5: ["top","tr","br","bl","tl"], 7: ["top","tr","rm","br","bl","lm","tl"] };
+// ---- 形（多数決）：審判ごとに赤・青の点数を比べて勝者を決め、多数決（除外なし）
+function kJudgeWin(i){
+  const a = k.scores.aka[i], b = k.scores.ao[i];
+  if(a === null || b === null) return null;
+  return a > b ? "aka" : a < b ? "ao" : "tie";        // tie：同点（勝者未確定・要修正）
+}
+function kVote(){
+  const w = Array.from({length: k.judges}, (_, i) => kJudgeWin(i));
+  const r = { aka: w.filter(x => x === "aka").length, ao: w.filter(x => x === "ao").length,
+              tie: w.filter(x => x === "tie").length, pending: w.filter(x => x === null).length };
+  r.done = r.tie === 0 && r.pending === 0;
+  if(r.done) r.w = r.aka > r.ao ? "aka" : "ao";       // 審判数は奇数のため同数なし
+  return r;
+}
+// ---- 形（JKA）：最高点・最低点を1個ずつ除外して合計
+function kCalc(a){
+  if(a.some(v => v === null)) return null;
+  let hi = 0, lo = 0;
+  a.forEach((v,i) => { if(v > a[hi]) hi = i; if(v < a[lo]) lo = i; });
+  if(hi === lo) lo = hi === 0 ? 1 : 0;               // 全員同点のとき：別の1個を最低点として除外
+  const total = a.reduce((t,v,i) => i === hi || i === lo ? t : t + v, 0);
+  return { total, low: a[lo], tie: total + a[lo], tie2: total + a[lo] + a[hi], hi, lo };
+}
+const kPlayerNo = () => (k.edit ?? k.players.length) + 1;          // 採点中の選手番号
+const kFinished = () => k.edit === null && k.players.length >= k.count;
+function kConfirmPlayer(){                            // 選手の採点を確定 → 採点をリセットし次の選手へ
+  const a = k.scores.aka;
+  if(!kCalc(a)) return;
+  if(k.edit !== null){ k.players[k.edit] = a.slice(); k.edit = null; }   // 修正の確定後は次の選手へ
+  else if(k.players.length < k.count) k.players.push(a.slice());
+  kClearCurrent();
+  if(!kFinished()) k.sel = {s:"aka", i:0};
+}
+// 順位：合計点の高い順。合計が同じ選手どうしは、除外した最低点 → 除外した最高点の高い順。それでも同じなら同順位
+function kRanks(P){
+  const v = P.map(sc => { const c = kCalc(sc); return { t: c.total, lo: sc[c.lo], hi: sc[c.hi] }; });
+  return v.map((x, n) => {
+    const others = v.filter((_, m) => m !== n);
+    const better = others.filter(y => y.t > x.t || (y.t === x.t && (y.lo > x.lo || (y.lo === x.lo && y.hi > x.hi)))).length;
+    const sameT = others.filter(y => y.t === x.t), sameLo = sameT.filter(y => y.lo === x.lo);
+    const by = !sameT.length ? "total" : !sameLo.length ? "lo" : sameLo.some(y => y.hi === x.hi) ? "same" : "hi";
+    const basis = { total: "合計点", lo: "同点→最低点", hi: "同点→最低→最高", same: "同順位" }[by];
+    const short = { total: "合計", lo: "最低点", hi: "最高点", same: "同順位" }[by];
+    return { rank: better + 1, basis, short, by };
+  });
+}
+function kEditPlayer(n){                              // 確定済みの選手を呼び戻して修正（採点中の入力がないときのみ）
+  if(kCurInput() || k.edit !== null || !k.players[n]) return;
+  k.edit = n; k.scores.aka = k.players[n].slice(); k.sel = {s:"aka", i:0};
+}
+// ---- 点数の入力（両メニュー共通）
+const t10 = v => (v / 10).toFixed(1);
+function kSelect(s, i){ if(mode === "score" && kFinished()) return; k.sel = (k.sel && k.sel.s === s && k.sel.i === i) ? null : {s, i}; }
+function kClear(s, i){ k.scores[s][i] = null; }
+function kOrder(){                                     // 入力の順番：同じ色で 主審→副審1→… の後、相手の色（形（JKA）は色なし）
+  const f = k.sel ? k.sel.s : (m.swapped ? "ao" : "aka"), g = f === "aka" ? "ao" : "aka", o = [];
+  for(const s of (mode === "score" ? ["aka"] : [f, g])) for(let i = 0; i < k.judges; i++) o.push({s, i});
+  return o;
+}
+function kAdvance(){
+  const o = kOrder(), at = o.findIndex(c => c.s === k.sel.s && c.i === k.sel.i);
+  const rot = o.slice(at + 1).concat(o.slice(0, at + 1));
+  k.sel = rot.find(c => k.scores[c.s][c.i] === null) || null;
+}
+function kInt(n){                                       // 整数部（5〜10）
+  if(!k.sel) return;
+  k.scores[k.sel.s][k.sel.i] = n * 10;
+  if(n * 10 >= K_MAX) kAdvance();                       // 10.0は小数入力なしで確定
+}
+// ---- 基準点入力：選択した枠は基準点から始まり、±0.1で調整、「確定」で記録して次へ
+const clampK = v => Math.min(K_MAX, Math.max(K_MIN, v));
+const kTent = () => k.sel ? (k.scores[k.sel.s][k.sel.i] ?? k.base) : null;   // 表示中の値（未確定なら基準点）
+function kSetInput(v){ k.input = v; }
+let baseEdit = false;                                  // 基準点の変更モード（長押しで入る）
+function kBase(d){ if(baseEdit) k.base = clampK(k.base + d); }
+function kStep(d){ if(k.sel) k.scores[k.sel.s][k.sel.i] = clampK(kTent() + d); }
+function kOk(){ if(k.sel){ k.scores[k.sel.s][k.sel.i] = kTent(); kAdvance(); } }
+function kDec(d){                                       // 小数部（.0〜.9）
+  if(!k.sel) return;
+  const v = k.scores[k.sel.s][k.sel.i];
+  if(v === null || v >= K_MAX) return;
+  k.scores[k.sel.s][k.sel.i] = Math.floor(v / 10) * 10 + d;
+  kAdvance();
+}
+
+// ---------------------------------------------------------------- サウンド（audio要素：マナーモードの影響を受けにくい）
+function wavURL(segments, square, vol){
+  const rate = 22050, fade = Math.floor(rate * 0.005);
+  let n = 0; for(const [,d] of segments) n += Math.floor(rate * d);
+  const buf = new ArrayBuffer(44 + n*2), v = new DataView(buf);
+  const str = (o,t) => { for(let i=0;i<t.length;i++) v.setUint8(o+i, t.charCodeAt(i)); };
+  str(0,"RIFF"); v.setUint32(4, 36 + n*2, true); str(8,"WAVE"); str(12,"fmt ");
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,rate,true); v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  str(36,"data"); v.setUint32(40, n*2, true);
+  let o = 44;
+  for(const [f,d] of segments){
+    const len = Math.floor(rate * d);
+    for(let i=0;i<len;i++){
+      let x = 0;
+      if(f > 0){
+        const ph = Math.sin(2*Math.PI*f*i/rate);
+        x = square ? (ph >= 0 ? 1 : -1) * 0.6 : ph;
+        x *= vol * Math.min(1, i/fade, (len-i)/fade);
+      }
+      v.setInt16(o, Math.round(x * 32767), true); o += 2;
+    }
+  }
+  return URL.createObjectURL(new Blob([buf], {type:"audio/wav"}));
+}
+try{ if(navigator.audioSession) navigator.audioSession.type = "playback"; }catch(e){}
+const sounds = {
+  warn: new Audio(wavURL([[1000,0.12],[0,0.10],[1000,0.12],[0,0.10],[1000,0.12],[0,0.05]], false, 0.9)), // 短く3回
+  end:  new Audio(wavURL([[440,1.5]], true, 0.9)),                                                     // 長いブザー1回
+};
+for(const a of Object.values(sounds)){ a.preload = "auto"; a.setAttribute("playsinline",""); }
+let audioUnlocked = false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  for(const a of Object.values(sounds)){
+    try{
+      a.muted = true;
+      const p = a.play();
+      const done = () => { a.pause(); a.currentTime = 0; a.muted = false; };
+      if(p && p.then) p.then(done).catch(() => { a.muted = false; audioUnlocked = false; }); else done();
+    }catch(e){ a.muted = false; audioUnlocked = false; }
+  }
+}
+document.addEventListener("touchend", unlockAudio, {passive:true});
+document.addEventListener("click", unlockAudio);
+function play(kind){
+  const a = sounds[kind];
+  try{ a.muted = false; a.currentTime = 0; const p = a.play(); if(p && p.catch) p.catch(() => {}); }catch(e){}
+}
+
+// ---------------------------------------------------------------- 操作（タップ／長押し）
+function bind(el, {tap, long, ms}){
+  let timer = null, fired = false;
+  const clear = () => { if(timer){ clearTimeout(timer); timer = null; } };
+  el.addEventListener("pointerdown", () => {
+    fired = false;
+    if(long){ clear(); timer = setTimeout(() => { timer = null; fired = true; long(); render(); }, ms || LONG_MS); }
+  });
+  el.addEventListener("pointerup", clear);
+  el.addEventListener("pointercancel", clear);
+  el.addEventListener("pointerleave", clear);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("click", () => {
+    if(fired){ fired = false; return; }
+    if(tap){ tap(); render(); }
+  });
+}
+document.addEventListener("gesturestart", e => e.preventDefault());
+document.addEventListener("dblclick", e => e.preventDefault());
+
+// ---------------------------------------------------------------- UI構築（組手）
+const ui = {};
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+for(const s of SIDES){
+  const panel = document.getElementById(s), p = {};
+  panel.append(el("div","name", SIDE_NAME[s]));
+  p.score = el("div","score","0"); panel.append(p.score);
+  p.senshu = el("button","senshu","先取"); panel.append(p.senshu);
+  bind(p.senshu, {tap: () => giveSenshu(s), long: () => longSenshu(s)});
+  const pts = el("div","row pts"); p.cnt = {};
+  for(const w of WAZA){
+    const b = el("button");
+    b.append(el("span","lbl",w.label));
+    p.cnt[w.key] = el("span","cnt","0"); b.append(p.cnt[w.key]);
+    bind(b, {tap: () => addWaza(s, w.key, 1), long: () => addWaza(s, w.key, -1)});
+    pts.append(b);
+  }
+  panel.append(pts);
+  panel.append(el("div","hint","タップで加点／長押しで1回取消"));
+  const pens = el("div","row pens"); p.pen = [];
+  PENALTY_NAMES.forEach((t,i) => { const l = el("div", "pen" + (i === 4 ? " foul" : ""), t); p.pen.push(l); pens.append(l); });
+  panel.append(pens);
+  const pb = el("div","row penbtn");
+  const pen = el("button");
+  pen.innerHTML = "罰則<small>タップで+1／長押しで−1</small>";
+  bind(pen, {tap: () => addPenalty(s, 1), long: () => addPenalty(s, -1)});
+  pb.append(pen); panel.append(pb);
+  ui[s] = p;
+}
+const app = document.getElementById("app");
+const timerBtn = document.getElementById("timer"), stateLbl = document.getElementById("state");
+const adjBox = document.getElementById("adj"), unlockBtn = document.getElementById("unlock");
+bind(timerBtn, {tap: toggle});
+for(const b of adjBox.querySelectorAll("button")) bind(b, {tap: () => adjust(Number(b.dataset.d))});
+bind(unlockBtn, {tap: () => { if(m.unlocked) exitEdit(); }, long: () => { if(!m.unlocked) enterEdit(); }});
+bind(document.getElementById("reset"), {long: reset, ms: RESET_MS});
+
+// ---------------------------------------------------------------- UI構築（形）
+const kata = document.getElementById("kata");
+const kui = {};
+const kMsg = document.getElementById("kmsg"), kResult = document.getElementById("kresult");
+const kPad = document.getElementById("kpad"), kPlbl = document.getElementById("kplbl");
+const kBoard = document.getElementById("kboard");
+const kaka = document.getElementById("kaka"), kao = document.getElementById("kao");
+const kConfirm = document.getElementById("kconfirm"), sheet = document.getElementById("sheet");
+bind(kConfirm, {tap: kConfirmPlayer});
+bind(document.getElementById("pcm"), {tap: () => kSetCount(-1)}); bind(document.getElementById("pcp"), {tap: () => kSetCount(1)});
+document.getElementById("sheet-close").addEventListener("click", () => sheet.classList.remove("open"));
+// 全選手・全審判の一覧表（除外した最高点＝赤の斜線、最低点＝青の斜線）
+function renderSheet(){
+  const P = K.score.players, J = K.score.judges, t = document.getElementById("sheet-table");
+  let h = "<thead><tr><th></th>" + P.map((_, n) => `<th>選手${n + 1}</th>`).join("") + "</tr></thead><tbody>";
+  const cs = P.map(kCalc);
+  for(let i = 0; i < J; i++){
+    h += `<tr><th>${judgeName(i)}</th>` + P.map((sc, n) => `<td class="${i === cs[n].hi ? "hi" : i === cs[n].lo ? "lo" : ""}">${t10(sc[i])}</td>`).join("") + "</tr>";
+  }
+  h += `<tr class="sum"><th>合計点</th>` + cs.map(c => `<td>${t10(c.total)}</td>`).join("") + "</tr>";
+  const rk = kRanks(P);
+  h += `<tr class="sum2"><th>除外した最低点</th>` + P.map((sc, n) => `<td class="lt${rk[n].by === "lo" ? " dec" : ""}">${t10(sc[cs[n].lo])}</td>`).join("") + "</tr>";
+  h += `<tr class="sum2"><th>除外した最高点</th>` + P.map((sc, n) => `<td class="ht${rk[n].by === "hi" ? " dec" : ""}">${t10(sc[cs[n].hi])}</td>`).join("") + "</tr>";
+  h += `<tr class="sum"><th>順位</th>` + rk.map(x => `<td>${x.rank}位</td>`).join("") + "</tr>";
+  h += `<tr class="sum2"><th>順位の根拠</th>` + rk.map(x => `<td class="bs${x.by !== "total" ? " tb" : ""}">${x.basis}</td>`).join("") + "</tr></tbody>";
+  t.innerHTML = P.length ? h : "<tbody><tr><td>確定済みの選手はまだいません</td></tr></tbody>";
+}
+const kTitle = document.getElementById("ktitle"), segJudges = document.getElementById("seg-judges");
+for(const b of segJudges.children) bind(b, {tap: () => kSetJudges(Number(b.dataset.v))});
+const kpi = document.getElementById("kpi"), kpd = document.getElementById("kpd");
+const kIntBtns = [], kDecBtns = [];
+for(let n = 5; n <= 10; n++){ const b = el("button", "", String(n)); bind(b, {tap: () => kInt(n)}); kpi.append(b); kIntBtns.push(b); }
+for(let d = 0; d <= 9; d++){ const b = el("button", "", "." + d); bind(b, {tap: () => kDec(d)}); kpd.append(b); kDecBtns.push(b); }
+const kIn = document.getElementById("kin"), kBaseLbl = document.getElementById("kbase"), kVal = document.getElementById("kval");
+for(const b of kIn.children) bind(b, {tap: () => kSetInput(b.dataset.v)});
+// 基準点は試合ごとに変えないため、誤操作防止で「長押しで変更モード」→ ±0.1 → 完了
+bind(document.getElementById("kbedit"), {long: () => { baseEdit = true; }});
+bind(document.getElementById("kbm"), {tap: () => kBase(-1)}); bind(document.getElementById("kbp"), {tap: () => kBase(1)});
+bind(document.getElementById("kbdone"), {tap: () => { baseEdit = false; }});
+bind(document.getElementById("kvm"), {tap: () => kStep(-1)}); bind(document.getElementById("kvp"), {tap: () => kStep(1)});
+bind(document.getElementById("kok"), {tap: kOk});
+const kReset2Label = () => { document.getElementById("kreset").textContent = mode === "score" ? "全選手リセット（1秒長押し）" : "リセット（1秒長押し）"; };
+for(const id of ["kreset","kreset2"]) bind(document.getElementById(id), {long: () => kReset(), ms: RESET_MS});
+const cellBind = (b, s, i) => bind(b, {tap: () => kSelect(s, i), long: () => { kClear(s, i); k.sel = {s, i}; }});
+function kBuild(){                                     // メニュー・審判数が変わったときに作り直す
+  if(mode === "flag"){
+    // 形（多数決）：左から 主審・副審1・副審2… の列。各列に赤・青の点数を左右に並べ、その審判の勝者を表示
+    kBoard.replaceChildren(); kBoard.style.gridTemplateColumns = `repeat(${k.judges},1fr)`; kui.cols = [];
+    for(let i = 0; i < k.judges; i++){
+      const col = el("div","jcol"), c = {};
+      col.append(el("div","jh", judgeName(i)));
+      const cells = el("div","jcells"); c.cell = {};
+      for(const s of SIDES){
+        const b = el("button","jc " + s); b.append(el("span","js", SIDE_NAME[s])); b._v = el("span","jv","—"); b.append(b._v);
+        cellBind(b, s, i); c.cell[s] = b; cells.append(b);
+      }
+      col.append(cells);
+      c.win = el("div","jw","—"); col.append(c.win);
+      kBoard.append(col); kui.cols.push(c);
+    }
+  } else {
+    // 形（JKA）：左＝コート図（白）、右＝選手ごとの結果一覧
+    const panel = kaka, p = {};
+    panel.replaceChildren();
+    const head = el("div","khead");
+    p.no = el("div","kname","選手1"); head.append(p.no);
+    p.big = el("div","kbig2","—"); head.append(p.big);
+    panel.append(head);
+    p.sub = el("div","ksub",""); panel.append(p.sub);
+    p.grid = el("div","court"); p.grid.append(el("div","mat")); p.btns = [];
+    SEATS[k.judges].forEach((seat, i) => {
+      const b = el("button","seat");
+      const [x, y] = POS[seat]; b.style.left = x + "%"; b.style.top = y + "%";
+      b.append(el("span","jl", judgeName(i)));
+      const v = el("span","jv","—"); b.append(v); b._v = v; b._l = b.firstChild;
+      cellBind(b, "aka", i);
+      p.grid.append(b); p.btns.push(b);
+    });
+    panel.append(p.grid);
+    panel.append(el("div","hint","タップで選択／長押しで消去"));
+    kui.court = p;
+    const lp = kao; lp.replaceChildren();
+    const cols = el("div","rcols"), c1 = el("div","rc1"), c2 = el("div","rc2");
+    kui.curHead = el("div","lhead","得点"); c1.append(kui.curHead);
+    kui.curTable = el("table","ctab"); c1.append(kui.curTable);
+    c2.append(el("div","lhead","得点結果・順位"));
+    const tb = el("table","plist");
+    tb.innerHTML = "<thead><tr><th>順位</th><th>選手</th><th>合計</th><th>除外<br>最高</th><th>除外<br>最低</th><th>根拠</th></tr></thead>";
+    kui.tbody = el("tbody"); tb.append(kui.tbody); c2.append(tb);
+    c2.append(el("div","hint","確定済みの行を長押しで修正"));
+    cols.append(c1, c2); lp.append(cols);
+    const ob = el("button","sheet-btn","全選手の得点一覧を表示");
+    ob.addEventListener("click", () => { sheet.classList.add("open"); renderSheet(); });
+    lp.append(ob);
+    // 形（JKA）ではアプリ名・利用規約・メニューを右列の最下段に置く（赤青入替は不要のため置かない）
+    const ft = el("div","footer rfoot");
+    ft.innerHTML = '<span class="brand"><span>空手試合補助アプリ</span><span>「Hajime」<b>β版</b></span></span>';
+    const tl = el("button","terms-link","利用規約"); tl.addEventListener("click", openTerms);
+    const mb = el("button","menu-btn","メニュー"); mb.addEventListener("click", openMenu);
+    ft.append(tl, mb); lp.append(ft);
+  }
+  kui.key = mode + k.judges;
+}
+
+// ---------------------------------------------------------------- 共通の操作（モード切替・赤青入替・利用規約）
+const menu = document.getElementById("menu");
+function setMode(v){ baseEdit = false; mode = v; if(v !== "kumite") k = K[v]; }
+function openMenu(){ if(!m.running){ menu.classList.add("open"); render(); } }   // 組手の計測中は開かない
+for(const b of document.querySelectorAll(".menu-btn")) b.addEventListener("click", openMenu);
+for(const b of menu.querySelectorAll(".mi")) b.addEventListener("click", () => { setMode(b.dataset.m); menu.classList.remove("open"); render(); });
+document.getElementById("menu-close").addEventListener("click", () => menu.classList.remove("open"));
+menu.addEventListener("click", e => { if(e.target === menu) menu.classList.remove("open"); });
+for(const b of document.querySelectorAll(".swap-btn")) bind(b, {long: () => { m.swapped = !m.swapped; }});
+const terms = document.getElementById("terms");
+function openTerms(){ terms.classList.add("open"); }
+for(const b of document.querySelectorAll(".terms-link")) b.addEventListener("click", openTerms);
+document.getElementById("terms-close").addEventListener("click", () => terms.classList.remove("open"));
+terms.addEventListener("click", e => { if(e.target === terms) terms.classList.remove("open"); });
+
+// ---------------------------------------------------------------- 描画
+function renderTimer(){
+  const r = remaining();
+  timerBtn.textContent = fmt(r);
+  timerBtn.classList.toggle("warn", r <= WARN_SEC);
+  stateLbl.textContent = m.running ? "計測中（タップで一時停止）"
+    : m.unlocked ? "修正モード"
+    : r <= 0 ? "終了"
+    : m.started ? "一時停止中（タップで再開）"
+    : "タップで開始";
+  adjBox.classList.toggle("off", !canAdjust());
+  unlockBtn.className = "";
+  app.classList.toggle("edit", m.unlocked);
+  if(m.unlocked){ unlockBtn.textContent = "修正終了（タップ）"; unlockBtn.classList.add("on"); }
+  else { unlockBtn.textContent = "修正（長押し）"; if(!m.started || m.running) unlockBtn.classList.add("dim"); }
+  document.getElementById("menu-kumite").classList.toggle("dim", m.running);
+}
+function renderKata(){
+  if(mode === "kumite") return;
+  if(kui.key !== mode + k.judges) kBuild();
+  kata.classList.toggle("swap", m.swapped);
+  kata.classList.toggle("score-mode", mode === "score");
+  kata.classList.toggle("flag-mode", mode === "flag");
+  kReset2Label();
+  kTitle.textContent = mode === "flag" ? "形（多数決）" : "形（JKA）";
+  const locked = kHasInput();
+  for(const b of segJudges.children) b.classList.toggle("on", Number(b.dataset.v) === k.judges);
+  segJudges.classList.toggle("locked", locked);
+  kMsg.textContent = (locked ? (mode === "score" ? "審判数の変更は全選手リセット後" : "審判数の変更はリセット後") : "審判数をタップで選択") + "／点数の枠：タップで選択・長押しで消去";
+  const isSel = (s, i) => !!k.sel && k.sel.s === s && k.sel.i === i;
+  kResult.className = "";
+  if(mode === "flag"){
+    const L = m.swapped ? "ao" : "aka", R = L === "aka" ? "ao" : "aka";
+    kui.cols.forEach((c, i) => {
+      for(const s of SIDES){
+        const b = c.cell[s], v = k.scores[s][i];
+        b._v.textContent = v === null ? "—" : t10(v);
+        b.style.order = s === L ? 1 : 2;
+        b.classList.toggle("sel", isSel(s, i));
+      }
+      const w = kJudgeWin(i);
+      c.win.className = "jw" + (w ? " " + w : "");
+      c.win.textContent = w === null ? "—" : w === "tie" ? "同点・要修正" : SIDE_NAME[w] + "の勝ち";
+    });
+    const r = kVote();
+    if(r.done){
+      kResult.classList.add(r.w);
+      kResult.innerHTML = `<div class="win">${SIDE_NAME[r.w]}の勝ち</div><div>赤 ${r.aka} − ${r.ao} 青</div>`;
+    } else if(r.tie > 0){
+      kResult.classList.add("tie");
+      kResult.innerHTML = `<div>同点の審判がいます</div><div>赤・青に差がつくよう点数を修正してください</div>`;
+    } else kResult.innerHTML = `全審判の赤・青を入力すると判定します<div>判定済み ${k.judges - r.pending}/${k.judges}（赤 ${r.aka}・青 ${r.ao}）</div>`;
+  } else {
+    const p = kui.court, a = k.scores.aka, c = kCalc(a), no = kPlayerNo(), fin = kFinished();
+    kaka.className = "panel left"; kao.className = "panel right";
+    p.no.textContent = fin ? "全選手 終了" : "選手" + no + (k.edit !== null ? "（修正）" : "");
+    p.big.textContent = fin ? "" : c ? t10(c.total) : "—";
+    p.sub.textContent = fin ? `${k.count}名の得点入力が終わりました` : c ? "最高・最低を除いた合計" : "入力 " + a.filter(v => v !== null).length + "/" + k.judges;
+    p.btns.forEach((b,i) => {
+      b._v.textContent = a[i] === null ? "—" : t10(a[i]);
+      const ex = !!c && (i === c.hi || i === c.lo);
+      b.classList.toggle("hi", !!c && i === c.hi); b.classList.toggle("lo", !!c && i === c.lo);
+      b._l.textContent = judgeName(i) + (ex ? (i === c.hi ? "\n最高除外" : "\n最低除外") : "");
+      b.classList.toggle("sel", isSel("aka", i));
+    });
+    // 選手ごとの結果一覧（確定済み＋採点中）
+    // 採点中の選手の表：審判ごとの点数（除外した最高点＝赤、最低点＝青の斜線）と合計
+    kui.curHead.textContent = fin ? "入力中の選手なし" : `選手${no}${k.edit !== null ? "（修正中）" : ""} の得点`;
+    kui.curTable.innerHTML = fin ? "" :                 // 縦表示：審判ごとに1行、最後に合計
+      a.map((v, i) => `<tr><th>${judgeName(i)}</th><td class="${c && i === c.hi ? "hi" : c && i === c.lo ? "lo" : ""}${isSel("aka", i) ? " sel" : ""}">${v === null ? "—" : t10(v)}</td></tr>`).join("") +
+      `<tr class="tr-tot"><th>合計</th><td class="tot">${c ? t10(c.total) : "—"}</td></tr>`;
+    const rk = kRanks(k.players);
+    const rows = k.players.map((sc, n) => ({n, sc, cur: false}));
+    if(!fin && k.edit === null) rows.push({n: k.players.length, sc: a, cur: true});
+    kui.tbody.replaceChildren();
+    for(const row of rows){
+      const cc = kCalc(row.sc), tr = el("tr", row.cur || k.edit === row.n ? "cur" : "");
+      const R = row.cur ? null : rk[row.n];
+      tr.innerHTML = `<td class="rk">${R ? R.rank + "位" : "—"}</td><td>選手${row.n + 1}${k.edit === row.n ? "<small>修正中</small>" : row.cur ? "<small>入力中</small>" : ""}</td>` +
+        (cc ? `<td>${t10(cc.total)}</td><td class="h${R && R.by === "hi" ? " dec" : ""}">${t10(row.sc[cc.hi])}</td><td class="l${R && R.by === "lo" ? " dec" : ""}">${t10(row.sc[cc.lo])}</td>` : "<td>—</td><td>—</td><td>—</td>") +
+        `<td class="bs${R && R.by !== "total" ? " tb" : ""}">${R ? R.short : ""}</td>`;
+      if(!row.cur) bind(tr, {long: () => kEditPlayer(row.n)});
+      kui.tbody.append(tr);
+    }
+    // 中央：採点中の選手の結果と確定ボタン
+    if(fin) kResult.innerHTML = `<div class="win">全選手 終了</div><div>一覧は右の「全選手の得点一覧を表示」から</div>`;
+    else if(c) kResult.innerHTML = `<div class="win">選手${no} 合計 ${t10(c.total)}</div><div class="exl hi">除外した最高点 ${t10(a[c.hi])}（${judgeName(c.hi)}）</div><div class="exl lo">除外した最低点 ${t10(a[c.lo])}（${judgeName(c.lo)}）</div>`;
+    else kResult.innerHTML = `選手${no} の得点を入力中<div>全審判の点数を入力すると合計を表示します</div>`;
+    kConfirm.textContent = k.edit !== null ? `選手${no} の修正を確定` : `選手${no} の得点を確定 → 選手${no + 1}へ`;
+    if(k.edit === null && no >= k.count) kConfirm.textContent = `選手${no} の得点を確定（最終）`;
+    if(fin) kConfirm.textContent = "全選手の得点入力が終わりました";
+    // 選手数
+    document.getElementById("pcv").textContent = k.count + "人";
+    document.getElementById("pcm").classList.toggle("off", k.count <= kMinCount());
+    document.getElementById("pcp").classList.toggle("off", k.count >= JKA_MAX_PLAYERS);
+    document.getElementById("pch").textContent = `下限 ${kMinCount()}人`;
+    kReset2Label();
+    kConfirm.classList.toggle("off", !c || fin);
+    if(sheet.classList.contains("open")) renderSheet();
+  }
+  // 入力パッド（両メニュー共通）
+  kPad.classList.toggle("off", !k.sel);
+  kPlbl.className = "plbl" + (k.sel ? " " + (mode === "score" ? "jka" : k.sel.s) : "");
+  kPlbl.textContent = !k.sel ? "点数の枠をタップして選択"
+    : mode === "score" ? `選手${kPlayerNo()}・${judgeName(k.sel.i)} を入力中` : `${judgeName(k.sel.i)}・${SIDE_NAME[k.sel.s]} を入力中`;
+  const cur = k.sel ? k.scores[k.sel.s][k.sel.i] : null;
+  kDecBtns.forEach(b => b.classList.toggle("off", !k.sel || cur === null || cur >= K_MAX));
+  kPad.classList.toggle("base", k.input === "base");
+  for(const b of kIn.children) b.classList.toggle("on", b.dataset.v === k.input);
+  kBaseLbl.textContent = t10(k.base);
+  document.getElementById("kbrow").classList.toggle("edit", baseEdit);
+  document.getElementById("kbh").textContent = baseEdit ? "変更中" : "長押しで変更";
+  kVal.textContent = k.sel ? t10(kTent()) : "—";
+  kVal.classList.toggle("tent", !!k.sel && cur === null);
+}
+function render(){
+  document.body.classList.toggle("kata", mode !== "kumite");
+  for(const b of menu.querySelectorAll(".mi")) b.classList.toggle("on", b.dataset.m === mode);
+  renderTimer();
+  app.classList.toggle("swap", m.swapped);
+  for(const s of SIDES){
+    const p = ui[s], left = (s === "aka") !== m.swapped;
+    document.getElementById(s).className = "panel " + (left ? "left" : "right");
+    p.score.textContent = score(s);
+    for(const w of WAZA) p.cnt[w.key].textContent = m.count[s][w.key];
+    p.senshu.className = "senshu";
+    if(m.senshu === s){ p.senshu.innerHTML = "● 先取<small>長押しで取消</small>"; p.senshu.classList.add("on"); }
+    else if(m.senshuCancelled && m.senshu === null){ p.senshu.innerHTML = "先取 取消済<small>長押しで付与</small>"; p.senshu.classList.add("dim"); }
+    else if(m.senshu === null){ p.senshu.innerHTML = "先取<small>タップで付与</small>"; }
+    else { p.senshu.textContent = "先取"; p.senshu.classList.add("dim"); }
+    p.pen.forEach((l,i) => l.classList.toggle("on", i < m.penalty[s]));
+  }
+  renderKata();
+}
+
+// ---------------------------------------------------------------- 画面スリープ防止（ページを開いている間）
+const KEEP_AWAKE_VIDEO = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMvbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAll0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAHRbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABfG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAATxzdGJsAAAAvHN0c2QAAAAAAAAAAQAAAKxhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAAMmF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADAAg8SJZYAQAEaO+Py/34+AAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAALQAAAC0AAAAAYc3R0cwAAAAAAAAABAAAAAgAAQAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAAAgAAAAEAAAAcc3RzegAAAAAAAAAAAAAAAgAAAsQAAAAMAAAAFHN0Y28AAAAAAAAAAQAAA18AAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYwLjE2LjEwMAAAAAhmcmVlAAAC2G1kYXQAAAKqBgX//6bcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MSBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MyBtZT1oZXggc3VibWU9MiBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0wIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MCA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0wIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTMgYl9weXJhbWlkPTIgYl9hZGFwdD0xIGJfYmlhcz0wIGRpcmVjdD0xIHdlaWdodGI9MSBvcGVuX2dvcD0wIHdlaWdodHA9MSBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTEwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAABJliIQAFv/sf8JVf9ECkR5tf/EAAAAIQZohGIK//vA=";
+let wakeLock = null, keepVideo = null;
+async function keepAwake(){
+  if(document.visibilityState !== "visible") return;
+  try{
+    if(navigator.wakeLock && !wakeLock){
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+      return;
+    }
+    if(wakeLock) return;
+  }catch(e){}
+  try{
+    if(!keepVideo){
+      keepVideo = document.createElement("video");
+      keepVideo.setAttribute("playsinline", ""); keepVideo.muted = true; keepVideo.loop = true;
+      keepVideo.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:0;top:0";
+      keepVideo.src = KEEP_AWAKE_VIDEO;
+      document.body.append(keepVideo);
+    }
+    if(keepVideo.paused) await keepVideo.play();
+  }catch(e){}
+}
+document.addEventListener("click", keepAwake);
+document.addEventListener("touchend", keepAwake, {passive:true});
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") keepAwake(); });
+keepAwake();
+
+// ---------------------------------------------------------------- PWA：オフライン対応（Service Worker登録。https または localhost で公開したときのみ有効）
+if("serviceWorker" in navigator && location.protocol !== "file:"){
+  window.addEventListener("load", () => { navigator.serviceWorker.register("kumite_hajime_sw.js").catch(() => {}); });
+}
+
+render();
+setInterval(() => { tick(); renderTimer(); }, 50);
+</script>
+</body>
+</html>

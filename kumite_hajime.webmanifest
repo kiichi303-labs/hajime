@@ -1,0 +1,17 @@
+{
+  "name": "空手試合補助アプリ「Hajime」",
+  "short_name": "Hajime",
+  "description": "空手の組手タイマー・形判定アプリ",
+  "lang": "ja",
+  "start_url": "./kumite_hajime.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "icons": [
+    { "src": "kumite_hajime_icon_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "kumite_hajime_icon_512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "kumite_hajime_icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
