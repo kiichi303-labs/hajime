@@ -1,7 +1,7 @@
 // 空手試合補助アプリ「Hajime」 Service Worker
 // 方式：キャッシュを先に返し、裏で最新版を取得してキャッシュを更新（次回起動時に反映）
 // ファイルを差し替えて公開したときは VERSION を上げると、古いキャッシュを確実に削除できる
-const VERSION = "v1";
+const VERSION = "v4";
 const CACHE = "kumite-hajime-" + VERSION;
 const FILES = [
   "./kumite_hajime.html",
