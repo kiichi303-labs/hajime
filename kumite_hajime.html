@@ -244,6 +244,16 @@ button:active{filter:brightness(1.5)}
 #menu .mi.on{background:#ffcc1a;color:#000}
 #menu-close{background:rgba(255,255,255,.08)}
 #ktitle{flex:0 0 7.5vh;line-height:7.5vh;text-align:center;font-size:min(4vh,2.4vw);font-weight:800;letter-spacing:.1em;border-radius:10px;background:rgba(255,255,255,.08)}
+/* ---- 場内表示（形（JKA）の得点確定時）：白地に黒文字、左右10%は持ち手 ---- */
+#board{display:none;position:fixed;inset:0;z-index:30;background:#fff;color:#000}
+#board.open{display:flex}
+#board .bgrip{flex:0 0 10%}   /* 触れても何もしない（下の画面にも届かない） */
+#board .bmain{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;min-width:0}
+#board #bnext{position:absolute;top:2vh;left:50%;transform:translateX(-50%);padding:1.2vh 2.4vw;font-size:min(2.4vh,1.4vw);font-weight:600;background:#f0f0f0;color:#aaa;border:1px solid #ddd;white-space:nowrap}
+#board .bscore{white-space:nowrap;font-family:"Helvetica Neue",Helvetica,Arial,-apple-system,sans-serif;font-size:min(72vh,38vw);font-weight:900;line-height:.85;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#board .bscore .bdot{display:inline-block;width:.2em;height:.2em;border-radius:50%;background:currentColor;margin:0 .04em;vertical-align:baseline}
+#board .bfoot{position:absolute;bottom:2vh;left:0;right:0;text-align:center;font-size:min(2.4vh,1.4vw);color:#aaa}
+#board #bno{font-weight:700;color:#888}
 @media (orientation:portrait){#rotate{display:flex}}
 </style>
 </head>
@@ -310,6 +320,7 @@ button:active{filter:brightness(1.5)}
 <div id="terms" class="ov"><div class="box"><h2>利用規約</h2><p>本ツールは個人が無償で提供するものです。表示される時間・得点等の正確性や、特定の目的への適合性は保証しません。公式試合の計時・記録には大会の正式な機材をご使用ください。本ツールの利用により生じた損害について、提供者の故意または重大な過失による場合を除き、責任を負いません。本ツールは利用者の情報を収集・送信しません。（ホスティング事業者がアクセスログを記録する場合があります）</p><button id="terms-close">閉じる</button></div></div>
 <div id="menu" class="ov"><div class="box"><h2>メニュー</h2><button class="mi" data-m="kumite">組手</button><button class="mi" data-m="flag">形（多数決）</button><button class="mi" data-m="score">形（JKA）</button><button id="menu-close">閉じる</button></div></div>
 <div id="sheet"><div class="shead"><span>形（JKA）得点一覧</span><span class="legend"><i class="lg hi"></i>除外した最高点　<i class="lg lo"></i>除外した最低点</span><button id="sheet-close">閉じる</button></div><div class="swrap"><table id="sheet-table"></table></div></div>
+<div id="board"><div class="bgrip"></div><div class="bmain"><button id="bnext">次の選手へ（1秒長押し）</button><div class="bscore" id="bscore"></div><div class="bfoot"><span id="bno"></span></div></div><div class="bgrip"></div></div>
 <div id="rotate">横向きにしてください</div>
 <script>
 "use strict";
@@ -437,9 +448,18 @@ function kCalc(a){
 }
 const kPlayerNo = () => (k.edit ?? k.players.length) + 1;          // 採点中の選手番号
 const kFinished = () => k.edit === null && k.players.length >= k.count;
-function kConfirmPlayer(){                            // 選手の採点を確定 → 採点をリセットし次の選手へ
-  const a = k.scores.aka;
-  if(!kCalc(a)) return;
+let board = null;
+function fitBoard(){                                   // 得点を画面幅（持ち手を除く）に収まる最大の大きさにする
+  const bs = document.getElementById("bscore"), box = bs.parentElement;
+  bs.style.fontSize = "";
+  const w = bs.scrollWidth, max = box.clientWidth * 0.96;
+  if(w > max) bs.style.fontSize = (parseFloat(getComputedStyle(bs).fontSize) * max / w) + "px";
+}
+window.addEventListener("resize", () => { if(board) fitBoard(); });                                      // 場内表示中の内容 {no, total}（null＝非表示）
+function kConfirmPlayer(){                            // 選手の採点を確定 → 場内表示 → 採点をリセットし次の選手へ
+  const a = k.scores.aka, c = kCalc(a);
+  if(!c) return;
+  board = { no: kPlayerNo(), total: c.total };         // 確定した選手の得点を場内表示（閉じると次の選手の入力へ）
   if(k.edit !== null){ k.players[k.edit] = a.slice(); k.edit = null; }   // 修正の確定後は次の選手へ
   else if(k.players.length < k.count) k.players.push(a.slice());
   kClearCurrent();
@@ -614,6 +634,8 @@ const kBoard = document.getElementById("kboard");
 const kaka = document.getElementById("kaka"), kao = document.getElementById("kao");
 const kConfirm = document.getElementById("kconfirm"), sheet = document.getElementById("sheet");
 bind(kConfirm, {tap: kConfirmPlayer});
+const boardEl = document.getElementById("board");
+bind(document.getElementById("bnext"), {long: () => { board = null; }, ms: RESET_MS});   // 中央上部の「次の選手へ」を1秒長押しで閉じる
 bind(document.getElementById("pcm"), {tap: () => kSetCount(-1)}); bind(document.getElementById("pcp"), {tap: () => kSetCount(1)});
 document.getElementById("sheet-close").addEventListener("click", () => sheet.classList.remove("open"));
 // 全選手・全審判の一覧表（除外した最高点＝赤の斜線、最低点＝青の斜線）
@@ -840,6 +862,9 @@ function renderKata(){
   kVal.classList.toggle("tent", !!k.sel && cur === null);
 }
 function render(){
+  boardEl.classList.toggle("open", !!board);
+  if(board){ document.getElementById("bno").textContent = "選手" + board.no; const [ip, dp] = t10(board.total).split("."); const bs = document.getElementById("bscore"); bs.innerHTML = `${ip}<span class="bdot"></span>${dp}`;   // ピリオドは字形に頼らず円で描く
+    fitBoard(); }
   document.body.classList.toggle("kata", mode !== "kumite");
   for(const b of menu.querySelectorAll(".mi")) b.classList.toggle("on", b.dataset.m === mode);
   renderTimer();
